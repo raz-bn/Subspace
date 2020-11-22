@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	util "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	v1 "dana.794/api/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -60,6 +61,31 @@ func (r *SubspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 		// if subnamespace not found create an empty one
 		sns = corev1.Namespace{}
+	}
+
+	if ss.Status.State == v1.Ok {
+		if len(ss.Finalizers) == 0 {
+			if _, err := ctrl.CreateOrUpdate(ctx, r, &ss, func() error {
+				util.AddFinalizer(&ss, v1.FinalizerHasSubnamespace)
+				return nil
+			}); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		if ss.DeletionTimestamp != nil {
+			if sns.Name != "" {
+				if err := r.Delete(ctx, &sns); err != nil {
+					return ctrl.Result{}, err
+				}
+			} else {
+				if _, err := ctrl.CreateOrUpdate(ctx, r, &ss, func() error {
+					util.RemoveFinalizer(&ss, v1.FinalizerHasSubnamespace)
+					return nil
+				}); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+		}
 	}
 
 	if ss.Status.State == v1.Missing {
