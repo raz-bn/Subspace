@@ -1,0 +1,7 @@
+apiVersion: dana.794.dana.794/v1
+kind: Subspace
+metadata:
+  name: subspace-sample
+spec:
+  # Add fields here
+  foo: bar

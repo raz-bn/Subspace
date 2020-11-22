@@ -1,0 +1,20 @@
+# permissions for end users to view subspaces.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: subspace-viewer-role
+rules:
+- apiGroups:
+  - dana.794.dana.794
+  resources:
+  - subspaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - dana.794.dana.794
+  resources:
+  - subspaces/status
+  verbs:
+  - get

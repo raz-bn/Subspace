@@ -1,3 +1,7 @@
 domain: dana.794
 repo: dana.794
+resources:
+- group: dana.794
+  kind: Subspace
+  version: v1
 version: "2"
