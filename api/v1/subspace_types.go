@@ -32,10 +32,18 @@ type SubspaceSpec struct {
 	Foo string `json:"foo,omitempty"`
 }
 
+type SubspaceState string
+
+const (
+	Ok      SubspaceState = "ok"
+	Missing SubspaceState = "missing"
+)
+
 // SubspaceStatus defines the observed state of Subspace
 type SubspaceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	State SubspaceState `json:"state,omitempty"`
 }
 
 // +kubebuilder:object:root=true
