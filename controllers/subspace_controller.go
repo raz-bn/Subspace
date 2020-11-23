@@ -43,11 +43,12 @@ type SubspaceReconciler struct {
 
 func (r *SubspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	_ = r.Log.WithValues("subspace", req.NamespacedName)
+	log := r.Log.WithValues("subspace", req.NamespacedName)
 
 	var ss v1.Subspace
 	if err := r.Get(ctx, req.NamespacedName, &ss); err != nil {
 		if apierrors.IsNotFound(err) {
+			log.Info("Subspace has been deleted")
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
@@ -57,6 +58,7 @@ func (r *SubspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	nsn := types.NamespacedName{Name: ss.Name}
 	if err := r.Get(ctx, nsn, &sns); err != nil {
 		if !apierrors.IsNotFound(err) {
+			log.Info("Couldnt find Subnamespace")
 			return ctrl.Result{}, err
 		}
 		// if subnamespace not found create an empty one
@@ -65,6 +67,7 @@ func (r *SubspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	if ss.Status.State == v1.Ok {
 		if len(ss.Finalizers) == 0 {
+			log.Info("Finalizer not present, add one for cleanup")
 			if _, err := ctrl.CreateOrUpdate(ctx, r, &ss, func() error {
 				util.AddFinalizer(&ss, v1.FinalizerHasSubnamespace)
 				return nil
@@ -74,10 +77,13 @@ func (r *SubspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 		if ss.DeletionTimestamp != nil {
 			if sns.Name != "" {
+				log.Info("Subspace has been deleted cleanup subnamespace")
 				if err := r.Delete(ctx, &sns); err != nil {
 					return ctrl.Result{}, err
 				}
+				return ctrl.Result{Requeue: true}, nil
 			} else {
+				log.Info("Cleanup complete remove finalizer")
 				if _, err := ctrl.CreateOrUpdate(ctx, r, &ss, func() error {
 					util.RemoveFinalizer(&ss, v1.FinalizerHasSubnamespace)
 					return nil
@@ -91,6 +97,7 @@ func (r *SubspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if ss.Status.State == v1.Missing {
 		if sns.Name != "" {
 			// if the subnamespace is already created change the state to Ok
+			log.Info("Subnamespace created update Subspace state to Ok")
 			if _, err := ctrl.CreateOrUpdate(ctx, r, &ss, func() error {
 				ss.Status.State = v1.Ok
 				return nil
@@ -99,7 +106,8 @@ func (r *SubspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			}
 		} else {
 			// create the subnamespace and reconcile again
-			sns.Name = ss.Name
+			log.Info("Subnamespace is missing create one")
+			sns.Name = ss.Name // cant set name of obj in mutefn
 			if _, err := ctrl.CreateOrUpdate(ctx, r, &sns, func() error { return nil }); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -109,6 +117,7 @@ func (r *SubspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	if sns.Name == "" {
 		//TODO:should check if someone did not delete the ns
+		log.Info("First reconcile update Subspace state to Missing")
 		if _, err := ctrl.CreateOrUpdate(ctx, r, &ss, func() error {
 			ss.Status.State = v1.Missing
 			return nil
