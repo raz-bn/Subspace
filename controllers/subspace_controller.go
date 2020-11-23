@@ -74,6 +74,7 @@ func (r *SubspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			}); err != nil {
 				return ctrl.Result{}, err
 			}
+			return ctrl.Result{}, nil
 		}
 		if ss.DeletionTimestamp != nil {
 			if sns.Name != "" {
@@ -82,6 +83,7 @@ func (r *SubspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 					if err := r.Delete(ctx, &sns); err != nil {
 						return ctrl.Result{}, err
 					}
+					log.Info("Cach did not update yet requeue")
 					return ctrl.Result{Requeue: true}, nil
 				}
 				return ctrl.Result{Requeue: true}, nil
