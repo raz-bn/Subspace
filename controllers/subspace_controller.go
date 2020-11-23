@@ -77,9 +77,12 @@ func (r *SubspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 		if ss.DeletionTimestamp != nil {
 			if sns.Name != "" {
-				log.Info("Subspace has been deleted cleanup subnamespace")
-				if err := r.Delete(ctx, &sns); err != nil {
-					return ctrl.Result{}, err
+				if sns.DeletionTimestamp == nil {
+					log.Info("Subspace has been deleted cleanup subnamespace")
+					if err := r.Delete(ctx, &sns); err != nil {
+						return ctrl.Result{}, err
+					}
+					return ctrl.Result{Requeue: true}, nil
 				}
 				return ctrl.Result{Requeue: true}, nil
 			} else {
