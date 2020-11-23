@@ -116,13 +116,15 @@ func (r *SubspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if sns.Name == "" {
-		//TODO:should check if someone did not delete the ns
-		log.Info("First reconcile update Subspace state to Missing")
-		if _, err := ctrl.CreateOrUpdate(ctx, r, &ss, func() error {
-			ss.Status.State = v1.Missing
-			return nil
-		}); err != nil {
-			return ctrl.Result{}, err
+		if ss.DeletionTimestamp == nil {
+			//TODO:should check if someone did not delete the ns
+			log.Info("First reconcile update Subspace state to Missing")
+			if _, err := ctrl.CreateOrUpdate(ctx, r, &ss, func() error {
+				ss.Status.State = v1.Missing
+				return nil
+			}); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
